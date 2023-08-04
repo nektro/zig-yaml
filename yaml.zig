@@ -104,7 +104,7 @@ pub const Mapping = struct {
         return null;
     }
 
-    pub fn getT(self: Mapping, k: string, comptime f: std.meta.FieldEnum(Value)) ?extras.FieldType(Value, f) {
+    pub fn getT(self: Mapping, k: string, comptime f: std.meta.FieldEnum(Value)) ?std.meta.FieldType(Value, f) {
         for (self.items) |item| {
             if (std.mem.eql(u8, item.key, k)) {
                 return @field(item.value, @tagName(f));
