@@ -33,8 +33,7 @@ pub const Item = union(enum) {
         try writer.writeAll("Item{");
         switch (self) {
             .event => {
-                // try std.fmt.format(writer, "{s}", .{@tagName(self.event.type)});
-                try std.fmt.format(writer, "event {d}", .{self.event});
+                try std.fmt.format(writer, "event {}", .{self.event});
             },
             .kv, .document, .stream => {
                 unreachable;
@@ -114,8 +113,8 @@ pub const Mapping = struct {
         return null;
     }
 
-    pub fn get_string(self: Mapping, k: string) string {
-        return if (self.get(k)) |v| v.string else "";
+    pub fn get_string(self: Mapping, k: string) ?string {
+        return self.getT(k, .string);
     }
 
     pub fn get_string_array(self: Mapping, alloc: std.mem.Allocator, k: string) ![]string {
@@ -132,6 +131,10 @@ pub const Mapping = struct {
             }
         }
         return list.toOwnedSlice();
+    }
+
+    pub fn getMap(self: Mapping, k: string) ?Mapping {
+        return self.getT(k, .mapping);
     }
 
     pub fn format(self: Mapping, comptime fmt: string, options: std.fmt.FormatOptions, writer: anytype) @TypeOf(writer).Error!void {
