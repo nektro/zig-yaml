@@ -11,10 +11,19 @@ const c = @cImport({
 
 pub const Stream = struct {
     docs: []const Document,
+
+    pub fn deinit(self: *const Stream, alloc: std.mem.Allocator) void {
+        for (self.docs) |*item| item.deinit(alloc);
+        alloc.free(self.docs);
+    }
 };
 
 pub const Document = struct {
     mapping: Mapping,
+
+    pub fn deinit(self: *const Document, alloc: std.mem.Allocator) void {
+        self.mapping.deinit(alloc);
+    }
 };
 
 pub const Item = union(enum) {
@@ -24,6 +33,22 @@ pub const Item = union(enum) {
     sequence: Sequence,
     string: string,
     stream: Stream,
+
+    pub fn deinit(self: *const Item, alloc: std.mem.Allocator) void {
+        switch (self.*) {
+            .event => {},
+            .kv => |kv| kv.deinit(alloc),
+            .mapping => |m| m.deinit(alloc),
+            .sequence => |s| {
+                for (s) |*item| item.deinit(alloc);
+                alloc.free(s);
+            },
+            .string => |s| {
+                _ = s;
+            },
+            .stream => |s| s.deinit(alloc),
+        }
+    }
 
     pub fn format(self: Item, comptime fmt: string, options: std.fmt.FormatOptions, writer: anytype) @TypeOf(writer).Error!void {
         _ = fmt;
@@ -60,12 +85,33 @@ pub const Sequence = []const Item;
 pub const Key = struct {
     key: string,
     value: Value,
+
+    pub fn deinit(self: *const Key, alloc: std.mem.Allocator) void {
+        // alloc.free(self.key);
+        self.value.deinit(alloc);
+    }
 };
 
 pub const Value = union(enum) {
     string: string,
     mapping: Mapping,
     sequence: Sequence,
+
+    pub fn deinit(self: *const Value, alloc: std.mem.Allocator) void {
+        switch (self.*) {
+            .string => |s| {
+                _ = s;
+                // alloc.free(s);
+            },
+            .mapping => |*m| {
+                m.deinit(alloc);
+            },
+            .sequence => |s| {
+                for (s) |*item| item.deinit(alloc);
+                alloc.free(s);
+            },
+        }
+    }
 
     pub fn format(self: Value, comptime fmt: string, options: std.fmt.FormatOptions, writer: anytype) @TypeOf(writer).Error!void {
         _ = fmt;
@@ -94,6 +140,11 @@ pub const Value = union(enum) {
 pub const Mapping = struct {
     items: []const Key,
 
+    pub fn deinit(self: *const Mapping, alloc: std.mem.Allocator) void {
+        for (self.items) |*item| item.deinit(alloc);
+        alloc.free(self.items);
+    }
+
     pub fn get(self: Mapping, k: string) ?Value {
         for (self.items) |item| {
             if (std.mem.eql(u8, item.key, k)) {
@@ -118,7 +169,7 @@ pub const Mapping = struct {
 
     pub fn get_string_array(self: Mapping, alloc: std.mem.Allocator, k: string) ![]string {
         var list = std.ArrayList(string).init(alloc);
-        defer list.deinit();
+        errdefer list.deinit();
         if (self.get(k)) |val| {
             if (val == .sequence) {
                 for (val.sequence) |item| {
@@ -161,10 +212,12 @@ pub fn parse(alloc: std.mem.Allocator, input: string) !Document {
     defer c.yaml_parser_delete(&parser);
 
     const lines = try split(alloc, input, "\n");
+    defer alloc.free(lines);
 
     _ = c.yaml_parser_set_input_string(&parser, input.ptr, input.len);
 
     var all_events = std.ArrayList(Token).init(alloc);
+    defer all_events.deinit();
     var event: Token = undefined;
     while (true) {
         const p = c.yaml_parser_parse(&parser, &event);
@@ -188,6 +241,7 @@ pub fn parse(alloc: std.mem.Allocator, input: string) !Document {
         .index = 0,
     };
     const stream = try p.parse();
+    defer alloc.free(stream.docs);
     return stream.docs[0];
 }
 
