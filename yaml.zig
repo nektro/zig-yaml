@@ -22,7 +22,6 @@ pub const Item = union(enum) {
     kv: Key,
     mapping: Mapping,
     sequence: Sequence,
-    document: Document,
     string: string,
     stream: Stream,
 
@@ -35,7 +34,7 @@ pub const Item = union(enum) {
             .event => {
                 try std.fmt.format(writer, "event {}", .{self.event});
             },
-            .kv, .document, .stream => {
+            .kv, .stream => {
                 unreachable;
             },
             .mapping => {
@@ -220,7 +219,6 @@ fn parse_item(p: *Parser, start: ?Token) Error!Item {
     const tok = start orelse p.next();
     return switch (tok.?.type) {
         c.YAML_STREAM_START_EVENT => Item{ .stream = try parse_stream(p) },
-        c.YAML_DOCUMENT_START_EVENT => Item{ .document = try parse_document(p) },
         c.YAML_MAPPING_START_EVENT => Item{ .mapping = try parse_mapping(p) },
         c.YAML_SEQUENCE_START_EVENT => Item{ .sequence = try parse_sequence(p) },
         c.YAML_SCALAR_EVENT => Item{ .string = try get_event_string(tok.?, p) },
@@ -240,8 +238,7 @@ fn parse_stream(p: *Parser) Error!Stream {
         if (tok.?.type != c.YAML_DOCUMENT_START_EVENT) {
             return error.YamlUnexpectedToken;
         }
-        const item = try parse_item(p, tok);
-        try res.append(item.document);
+        try res.append(try parse_document(p));
     }
 }
 
