@@ -211,7 +211,7 @@ pub fn parse(alloc: std.mem.Allocator, input: string) !Document {
     _ = c.yaml_parser_initialize(&parser);
     defer c.yaml_parser_delete(&parser);
 
-    const lines = try split(alloc, input, "\n");
+    const lines = try split(alloc, input, '\n');
     defer alloc.free(lines);
 
     _ = c.yaml_parser_set_input_string(&parser, input.ptr, input.len);
@@ -381,11 +381,11 @@ fn get_event_string(event: Token, p: *const Parser) !string {
 //
 //
 
-fn split(alloc: std.mem.Allocator, in: string, delim: string) ![]string {
+fn split(alloc: std.mem.Allocator, in: string, delim: u8) ![]string {
     var list = std.ArrayList(string).init(alloc);
     errdefer list.deinit();
 
-    var iter = std.mem.split(u8, in, delim);
+    var iter = std.mem.splitScalar(u8, in, delim);
     while (iter.next()) |str| {
         try list.append(str);
     }
