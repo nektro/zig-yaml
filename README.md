@@ -7,3 +7,5 @@
 [![Zigmod](https://img.shields.io/badge/Zigmod-latest-f7a41d)](https://github.com/nektro/zigmod)
 
 Zig bindings for [libyaml](https://github.com/yaml/libyaml).
+
+Provides Zig API for a [StrictYAML](https://hitchdev.com/strictyaml/) document.
