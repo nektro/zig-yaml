@@ -326,6 +326,7 @@ fn parse_document(p: *Parser) Error!Document {
 fn parse_mapping(p: *Parser) Error!Mapping {
     var res = std.ArrayList(Key).init(p.alloc);
     errdefer res.deinit();
+    errdefer for (res.items) |k| k.deinit(p.alloc);
 
     while (true) {
         const tok = try p.next();
@@ -335,10 +336,12 @@ fn parse_mapping(p: *Parser) Error!Mapping {
         if (tok.type != c.YAML_SCALAR_EVENT) {
             return error.YamlUnexpectedToken;
         }
-        try res.append(Key{
-            .key = try get_event_string(tok, p),
-            .value = try parse_value(p),
-        });
+
+        const key = try get_event_string(tok, p);
+        errdefer p.alloc.free(key);
+        const value = try parse_value(p);
+        errdefer value.deinit(p.alloc);
+        try res.append(Key{ .key = key, .value = value });
     }
 }
 
