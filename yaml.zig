@@ -256,9 +256,9 @@ pub const Parser = struct {
         return item.stream;
     }
 
-    fn next(self: *Parser) ?Token {
+    fn next(self: *Parser) !Token {
         if (self.index >= self.tokens.len) {
-            return null;
+            return error.YamlEndOfStream;
         }
         defer self.index += 1;
         return self.tokens[self.index];
@@ -267,15 +267,15 @@ pub const Parser = struct {
 
 pub const Error =
     std.mem.Allocator.Error ||
-    error{YamlUnexpectedToken};
+    error{ YamlUnexpectedToken, YamlEndOfStream };
 
 fn parse_item(p: *Parser, start: ?Token) Error!Item {
-    const tok = start orelse p.next();
-    return switch (tok.?.type) {
+    const tok = start orelse try p.next();
+    return switch (tok.type) {
         c.YAML_STREAM_START_EVENT => Item{ .stream = try parse_stream(p) },
         c.YAML_MAPPING_START_EVENT => Item{ .mapping = try parse_mapping(p) },
         c.YAML_SEQUENCE_START_EVENT => Item{ .sequence = try parse_sequence(p) },
-        c.YAML_SCALAR_EVENT => Item{ .string = try get_event_string(tok.?, p) },
+        c.YAML_SCALAR_EVENT => Item{ .string = try get_event_string(tok, p) },
         else => unreachable,
     };
 }
@@ -285,11 +285,11 @@ fn parse_stream(p: *Parser) Error!Stream {
     errdefer res.deinit();
 
     while (true) {
-        const tok = p.next();
-        if (tok.?.type == c.YAML_STREAM_END_EVENT) {
+        const tok = try p.next();
+        if (tok.type == c.YAML_STREAM_END_EVENT) {
             return Stream{ .docs = try res.toOwnedSlice() };
         }
-        if (tok.?.type != c.YAML_DOCUMENT_START_EVENT) {
+        if (tok.type != c.YAML_DOCUMENT_START_EVENT) {
             return error.YamlUnexpectedToken;
         }
         try res.append(try parse_document(p));
@@ -297,13 +297,14 @@ fn parse_stream(p: *Parser) Error!Stream {
 }
 
 fn parse_document(p: *Parser) Error!Document {
-    const tok = p.next();
-    if (tok.?.type != c.YAML_MAPPING_START_EVENT) {
+    var tok = try p.next();
+    if (tok.type != c.YAML_MAPPING_START_EVENT) {
         return error.YamlUnexpectedToken;
     }
     const item = try parse_item(p, tok);
 
-    if (p.next().?.type != c.YAML_DOCUMENT_END_EVENT) {
+    tok = try p.next();
+    if (tok.type != c.YAML_DOCUMENT_END_EVENT) {
         return error.YamlUnexpectedToken;
     }
     return Document{ .mapping = item.mapping };
@@ -314,15 +315,15 @@ fn parse_mapping(p: *Parser) Error!Mapping {
     errdefer res.deinit();
 
     while (true) {
-        const tok = p.next();
-        if (tok.?.type == c.YAML_MAPPING_END_EVENT) {
+        const tok = try p.next();
+        if (tok.type == c.YAML_MAPPING_END_EVENT) {
             return Mapping{ .items = try res.toOwnedSlice() };
         }
-        if (tok.?.type != c.YAML_SCALAR_EVENT) {
+        if (tok.type != c.YAML_SCALAR_EVENT) {
             return error.YamlUnexpectedToken;
         }
         try res.append(Key{
-            .key = try get_event_string(tok.?, p),
+            .key = try get_event_string(tok, p),
             .value = try parse_value(p),
         });
     }
@@ -343,8 +344,8 @@ fn parse_sequence(p: *Parser) Error!Sequence {
     errdefer res.deinit();
 
     while (true) {
-        const tok = p.next();
-        if (tok.?.type == c.YAML_SEQUENCE_END_EVENT) {
+        const tok = try p.next();
+        if (tok.type == c.YAML_SEQUENCE_END_EVENT) {
             return try res.toOwnedSlice();
         }
         try res.append(try parse_item(p, tok));
