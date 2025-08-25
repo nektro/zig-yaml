@@ -2,3 +2,5 @@
 .zigmod
 zigmod.lock
 deps.zig
+zig-out
+fuzz/output
