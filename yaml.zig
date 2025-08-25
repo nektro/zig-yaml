@@ -18,11 +18,18 @@ pub const Stream = struct {
     }
 };
 
-pub const Document = struct {
+pub const Document = union(enum) {
     mapping: Mapping,
+    sequence: Sequence,
 
     pub fn deinit(self: *const Document, alloc: std.mem.Allocator) void {
-        self.mapping.deinit(alloc);
+        switch (self.*) {
+            .mapping => |m| m.deinit(alloc),
+            .sequence => |s| {
+                for (s) |*item| item.deinit(alloc);
+                alloc.free(s);
+            },
+        }
     }
 };
 
@@ -43,9 +50,7 @@ pub const Item = union(enum) {
                 for (s) |*item| item.deinit(alloc);
                 alloc.free(s);
             },
-            .string => |s| {
-                _ = s;
-            },
+            .string => |s| alloc.free(s),
             .stream => |s| s.deinit(alloc),
         }
     }
@@ -87,7 +92,7 @@ pub const Key = struct {
     value: Value,
 
     pub fn deinit(self: *const Key, alloc: std.mem.Allocator) void {
-        // alloc.free(self.key);
+        alloc.free(self.key);
         self.value.deinit(alloc);
     }
 };
@@ -99,10 +104,7 @@ pub const Value = union(enum) {
 
     pub fn deinit(self: *const Value, alloc: std.mem.Allocator) void {
         switch (self.*) {
-            .string => |s| {
-                _ = s;
-                // alloc.free(s);
-            },
+            .string => |s| alloc.free(s),
             .mapping => |*m| {
                 m.deinit(alloc);
             },
@@ -297,17 +299,28 @@ fn parse_stream(p: *Parser) Error!Stream {
 }
 
 fn parse_document(p: *Parser) Error!Document {
-    var tok = try p.next();
-    if (tok.type != c.YAML_MAPPING_START_EVENT) {
-        return error.YamlUnexpectedToken;
+    const tok = try p.next();
+    switch (tok.type) {
+        c.YAML_MAPPING_START_EVENT => {
+            const item = try parse_item(p, tok);
+            const tok2 = try p.next();
+            if (tok2.type != c.YAML_DOCUMENT_END_EVENT) {
+                return error.YamlUnexpectedToken;
+            }
+            return Document{ .mapping = item.mapping };
+        },
+        c.YAML_SEQUENCE_START_EVENT => {
+            const item = try parse_item(p, tok);
+            const tok2 = try p.next();
+            if (tok2.type != c.YAML_DOCUMENT_END_EVENT) {
+                return error.YamlUnexpectedToken;
+            }
+            return Document{ .sequence = item.sequence };
+        },
+        else => {
+            return error.YamlUnexpectedToken;
+        },
     }
-    const item = try parse_item(p, tok);
-
-    tok = try p.next();
-    if (tok.type != c.YAML_DOCUMENT_END_EVENT) {
-        return error.YamlUnexpectedToken;
-    }
-    return Document{ .mapping = item.mapping };
 }
 
 fn parse_mapping(p: *Parser) Error!Mapping {
@@ -374,9 +387,10 @@ fn get_event_string(event: Token, p: *const Parser) !string {
         }
     }
     const s = lines[sm.line][sm.column..em.column];
-    if (s.len < 2) return s;
-    if (s[0] == '"' and s[s.len - 1] == '"') return std.mem.trim(u8, s, "\"");
-    return s;
+    if (s.len < 2) return try p.alloc.dupe(u8, s);
+    if (s[0] == '"' and s[s.len - 1] == '"') return try p.alloc.dupe(u8, std.mem.trim(u8, s, "\""));
+    if (s[0] == '\'' and s[s.len - 1] == '\'') return try p.alloc.dupe(u8, std.mem.trim(u8, s, "'"));
+    return try p.alloc.dupe(u8, s);
 }
 
 //

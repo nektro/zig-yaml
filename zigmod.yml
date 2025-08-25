@@ -29,3 +29,8 @@ dependencies:
 
 root_dependencies:
   - src: git https://github.com/nektro/zig-expect
+  - src: git https://github.com/nektro/zig-nfs
+  - src: git https://github.com/yaml/yaml-test-suite commit-ccfa74e56afb53da960847ff6e6976c0a0825709
+    id: hi7zwl8ps6jdi4noam1ilxj1mp792qxf87u5tjlo4fz5p4ks
+    license: MIT
+    keep: true

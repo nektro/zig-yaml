@@ -15,6 +15,10 @@ pub fn build(b: *std.Build) void {
     tests.use_llvm = !disable_llvm;
     tests.use_lld = !disable_llvm;
 
+    const build_options = b.addOptions();
+    build_options.addOption([:0]const u8, "yamltestsuite_root", deps.dirs._hi7zwl8ps6jd);
+    tests.root_module.addImport("build_options", build_options.createModule());
+
     const test_step = b.step("test", "Run all library tests");
     const tests_run = b.addRunArtifact(tests);
     tests_run.has_side_effects = true;
