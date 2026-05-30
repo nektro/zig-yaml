@@ -37,7 +37,7 @@ pub const Item = union(enum) {
     kv: Key,
     mapping: Mapping,
     sequence: Sequence,
-    string: string,
+    string: [:0]const u8,
     stream: Stream,
 
     pub fn deinit(self: *const Item, alloc: std.mem.Allocator) void {
@@ -97,7 +97,7 @@ pub const Key = struct {
 };
 
 pub const Value = union(enum) {
-    string: string,
+    string: [:0]const u8,
     mapping: Mapping,
     sequence: Sequence,
 
@@ -367,7 +367,7 @@ fn parse_sequence(p: *Parser) Error!Sequence {
     }
 }
 
-fn get_event_string(event: Token, p: *const Parser) !string {
+fn get_event_string(event: Token, p: *const Parser) ![:0]u8 {
     const sm = event.start_mark;
     const em = event.end_mark;
     const lines = p.lines;
@@ -383,16 +383,16 @@ fn get_event_string(event: Token, p: *const Parser) !string {
                     try list.appendSlice(std.mem.trimLeft(u8, lines[i], " "));
                     try list.append('\n');
                 }
-                return try list.toOwnedSlice();
+                return try list.toOwnedSliceSentinel(0);
             },
             else => @panic("TODO"),
         }
     }
     const s = lines[sm.line][sm.column..em.column];
-    if (s.len < 2) return try p.alloc.dupe(u8, s);
-    if (s[0] == '"' and s[s.len - 1] == '"') return try p.alloc.dupe(u8, std.mem.trim(u8, s, "\""));
-    if (s[0] == '\'' and s[s.len - 1] == '\'') return try p.alloc.dupe(u8, std.mem.trim(u8, s, "'"));
-    return try p.alloc.dupe(u8, s);
+    if (s.len < 2) return try p.alloc.dupeZ(u8, s);
+    if (s[0] == '"' and s[s.len - 1] == '"') return try p.alloc.dupeZ(u8, std.mem.trim(u8, s, "\""));
+    if (s[0] == '\'' and s[s.len - 1] == '\'') return try p.alloc.dupeZ(u8, std.mem.trim(u8, s, "'"));
+    return try p.alloc.dupeZ(u8, s);
 }
 
 //
