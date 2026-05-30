@@ -164,7 +164,7 @@ pub const Mapping = struct {
         return null;
     }
 
-    pub fn get_string(self: Mapping, k: string) ?string {
+    pub fn get_string(self: Mapping, k: string) ?[:0]const u8 {
         return self.getT(k, .string);
     }
 
