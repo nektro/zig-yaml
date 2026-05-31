@@ -168,8 +168,8 @@ pub const Mapping = struct {
         return self.getT(k, .string);
     }
 
-    pub fn get_string_array(self: Mapping, alloc: std.mem.Allocator, k: string) ![]string {
-        var list = std.ArrayList(string).init(alloc);
+    pub fn get_string_array(self: Mapping, alloc: std.mem.Allocator, k: string) ![][:0]const u8 {
+        var list = std.ArrayList([:0]const u8).init(alloc);
         errdefer list.deinit();
         if (self.get(k)) |val| {
             if (val == .sequence) {
