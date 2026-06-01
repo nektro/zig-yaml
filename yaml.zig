@@ -54,30 +54,27 @@ pub const Item = union(enum) {
         }
     }
 
-    pub fn format(self: Item, comptime fmt: string, options: std.fmt.FormatOptions, writer: anytype) @TypeOf(writer).Error!void {
-        _ = fmt;
-        _ = options;
-
+    pub fn format(self: Item, writer: *std.Io.Writer) !void {
         try writer.writeAll("Item{");
         switch (self) {
             .event => {
-                try std.fmt.format(writer, "event {}", .{self.event});
+                try writer.print("event {}", .{self.event});
             },
             .kv, .stream => {
                 unreachable;
             },
             .mapping => {
-                try std.fmt.format(writer, "{}", .{self.mapping});
+                try writer.print("{f}", .{self.mapping});
             },
             .sequence => {
                 try writer.writeAll("[ ");
                 for (self.sequence) |it| {
-                    try std.fmt.format(writer, "{}, ", .{it});
+                    try writer.print("{f}, ", .{it});
                 }
                 try writer.writeAll("]");
             },
             .string => {
-                try std.fmt.format(writer, "{s}", .{self.string});
+                try writer.print("{s}", .{self.string});
             },
         }
         try writer.writeAll("}");
@@ -114,22 +111,19 @@ pub const Value = union(enum) {
         }
     }
 
-    pub fn format(self: Value, comptime fmt: string, options: std.fmt.FormatOptions, writer: anytype) @TypeOf(writer).Error!void {
-        _ = fmt;
-        _ = options;
-
+    pub fn format(self: Value, writer: *std.Io.Writer) !void {
         try writer.writeAll("Value{");
         switch (self) {
             .string => {
-                try std.fmt.format(writer, "{s}", .{self.string});
+                try writer.print("{s}", .{self.string});
             },
             .mapping => {
-                try std.fmt.format(writer, "{}", .{self.mapping});
+                try writer.print("{f}", .{self.mapping});
             },
             .sequence => {
                 try writer.writeAll("[ ");
                 for (self.sequence) |it| {
-                    try std.fmt.format(writer, "{}, ", .{it});
+                    try writer.print("{f}, ", .{it});
                 }
                 try writer.writeAll("]");
             },
@@ -188,14 +182,11 @@ pub const Mapping = struct {
         return self.getT(k, .mapping);
     }
 
-    pub fn format(self: Mapping, comptime fmt: string, options: std.fmt.FormatOptions, writer: anytype) @TypeOf(writer).Error!void {
-        _ = fmt;
-        _ = options;
-
+    pub fn format(self: Mapping, writer: *std.Io.Writer) !void {
         try writer.writeAll("{ ");
         for (self.items) |it| {
-            try std.fmt.format(writer, "{s}: ", .{it.key});
-            try std.fmt.format(writer, "{}, ", .{it.value});
+            try writer.print("{s}: ", .{it.key});
+            try writer.print("{f}, ", .{it.value});
         }
         try writer.writeAll("}");
     }
