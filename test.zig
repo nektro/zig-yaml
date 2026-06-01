@@ -11,11 +11,16 @@ test {
 
     try expect(doc.mapping.get_string("id").?).toEqualString("g982zq6e8wsvnmduerpbf8787hu85brugmngn8wf");
 }
-test {
+
+fn fuzzCase(embedfile_content: []const u8) void {
     const alloc = std.testing.allocator;
-    const doc = yaml.parse(alloc, @embedFile("./fuzz/crashes/id:000000,sig:06,src:000000,time:2049,execs:911,op:quick,pos:263")) catch return;
+    const doc = yaml.parse(alloc, embedfile_content) catch return;
     defer doc.deinit(alloc);
 }
+
+// zig fmt: off
+test { fuzzCase(@embedFile("./fuzz/crashes/id:000000,sig:06,src:000000,time:2049,execs:911,op:quick,pos:263")); }
+// zig fmt: on
 
 fn parseTest(comptime basename: [:0]const u8) !void {
     const alloc = std.testing.allocator;
