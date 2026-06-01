@@ -284,6 +284,7 @@ fn parse_item(p: *Parser, start: ?Token) Error!Item {
 fn parse_stream(p: *Parser) Error!Stream {
     var res = std.ArrayList(Document).init(p.alloc);
     errdefer res.deinit();
+    errdefer for (res.items) |k| k.deinit(p.alloc);
 
     while (true) {
         const tok = try p.next();
