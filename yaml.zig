@@ -87,7 +87,7 @@ pub const Item = union(enum) {
 pub const Sequence = []const Item;
 
 pub const Key = struct {
-    key: string,
+    key: [:0]const u8,
     value: Value,
 
     pub fn deinit(self: *const Key, alloc: std.mem.Allocator) void {
