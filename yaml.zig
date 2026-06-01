@@ -268,7 +268,7 @@ pub const Parser = struct {
 
 pub const Error =
     std.mem.Allocator.Error ||
-    error{ YamlUnexpectedToken, YamlEndOfStream };
+    error{ YamlUnexpectedToken, YamlEndOfStream, YamlInvalidMultilineString };
 
 fn parse_item(p: *Parser, start: ?Token) Error!Item {
     const tok = start orelse try p.next();
@@ -376,6 +376,7 @@ fn get_event_string(event: Token, p: *const Parser) ![:0]u8 {
     const lines = p.lines;
     if (sm.line != em.line) {
         const starter = lines[sm.line][sm.column..];
+        if (starter.len > 1 and starter[0] == '"') return error.YamlInvalidMultilineString;
         std.debug.assert(starter.len == 1);
         switch (starter[0]) {
             '|' => {
