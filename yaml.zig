@@ -376,8 +376,7 @@ fn get_event_string(event: Token, p: *const Parser) ![:0]u8 {
     const lines = p.lines;
     if (sm.line != em.line) {
         const starter = lines[sm.line][sm.column..];
-        if (starter.len > 1 and starter[0] == '"') return error.YamlInvalidMultilineString;
-        std.debug.assert(starter.len == 1);
+        if (starter.len != 1) return error.YamlInvalidMultilineString;
         switch (starter[0]) {
             '|' => {
                 var list = std.ArrayList(u8).init(p.alloc);
