@@ -302,6 +302,7 @@ fn parse_document(p: *Parser) Error!Document {
     switch (tok.type) {
         c.YAML_MAPPING_START_EVENT => {
             const item = try parse_item(p, tok);
+            errdefer item.deinit(p.alloc);
             const tok2 = try p.next();
             if (tok2.type != c.YAML_DOCUMENT_END_EVENT) {
                 return error.YamlUnexpectedToken;
@@ -310,6 +311,7 @@ fn parse_document(p: *Parser) Error!Document {
         },
         c.YAML_SEQUENCE_START_EVENT => {
             const item = try parse_item(p, tok);
+            errdefer item.deinit(p.alloc);
             const tok2 = try p.next();
             if (tok2.type != c.YAML_DOCUMENT_END_EVENT) {
                 return error.YamlUnexpectedToken;
@@ -357,6 +359,7 @@ fn parse_value(p: *Parser) Error!Value {
 fn parse_sequence(p: *Parser) Error!Sequence {
     var res = std.ArrayList(Item).init(p.alloc);
     errdefer res.deinit();
+    errdefer for (res.items) |k| k.deinit(p.alloc);
 
     while (true) {
         const tok = try p.next();
