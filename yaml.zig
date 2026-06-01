@@ -155,7 +155,7 @@ pub const Mapping = struct {
         return null;
     }
 
-    pub fn getT(self: Mapping, k: string, comptime f: std.meta.FieldEnum(Value)) ?std.meta.FieldType(Value, f) {
+    pub fn getT(self: Mapping, k: string, comptime f: std.meta.FieldEnum(Value)) ?@FieldType(Value, @tagName(f)) {
         for (self.items) |item| {
             if (std.mem.eql(u8, item.key, k)) {
                 return @field(item.value, @tagName(f));
@@ -169,7 +169,7 @@ pub const Mapping = struct {
     }
 
     pub fn get_string_array(self: Mapping, alloc: std.mem.Allocator, k: string) ![][:0]const u8 {
-        var list = std.ArrayList([:0]const u8).init(alloc);
+        var list = std.array_list.Managed([:0]const u8).init(alloc);
         errdefer list.deinit();
         if (self.get(k)) |val| {
             if (val == .sequence) {
@@ -217,7 +217,7 @@ pub fn parse(alloc: std.mem.Allocator, input: string) !Document {
 
     _ = c.yaml_parser_set_input_string(&parser, input.ptr, input.len);
 
-    var all_events = std.ArrayList(Token).init(alloc);
+    var all_events = std.array_list.Managed(Token).init(alloc);
     defer all_events.deinit();
     var event: Token = undefined;
     while (true) {
@@ -282,7 +282,7 @@ fn parse_item(p: *Parser, start: ?Token) Error!Item {
 }
 
 fn parse_stream(p: *Parser) Error!Stream {
-    var res = std.ArrayList(Document).init(p.alloc);
+    var res = std.array_list.Managed(Document).init(p.alloc);
     errdefer res.deinit();
     errdefer for (res.items) |k| k.deinit(p.alloc);
 
@@ -326,7 +326,7 @@ fn parse_document(p: *Parser) Error!Document {
 }
 
 fn parse_mapping(p: *Parser) Error!Mapping {
-    var res = std.ArrayList(Key).init(p.alloc);
+    var res = std.array_list.Managed(Key).init(p.alloc);
     errdefer res.deinit();
     errdefer for (res.items) |k| k.deinit(p.alloc);
 
@@ -358,7 +358,7 @@ fn parse_value(p: *Parser) Error!Value {
 }
 
 fn parse_sequence(p: *Parser) Error!Sequence {
-    var res = std.ArrayList(Item).init(p.alloc);
+    var res = std.array_list.Managed(Item).init(p.alloc);
     errdefer res.deinit();
     errdefer for (res.items) |k| k.deinit(p.alloc);
 
@@ -380,7 +380,7 @@ fn get_event_string(event: Token, p: *const Parser) ![:0]u8 {
         if (starter.len != 1) return error.YamlInvalidMultilineString;
         switch (starter[0]) {
             '|' => {
-                var list = std.ArrayList(u8).init(p.alloc);
+                var list = std.array_list.Managed(u8).init(p.alloc);
                 errdefer list.deinit();
                 var i = sm.line + 1;
                 while (i < em.line) : (i += 1) {
@@ -403,7 +403,7 @@ fn get_event_string(event: Token, p: *const Parser) ![:0]u8 {
 //
 
 fn split(alloc: std.mem.Allocator, in: string) ![]string {
-    var list = std.ArrayList(string).init(alloc);
+    var list = std.array_list.Managed(string).init(alloc);
     errdefer list.deinit();
 
     var iter = std.mem.splitAny(u8, in, "\r\n");
