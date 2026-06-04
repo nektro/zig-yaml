@@ -375,7 +375,7 @@ fn get_event_string(event: Token, p: *const Parser) ![:0]u8 {
                 errdefer list.deinit();
                 var i = sm.line + 1;
                 while (i < em.line) : (i += 1) {
-                    try list.appendSlice(std.mem.trimLeft(u8, lines[i], " "));
+                    try list.appendSlice(std.mem.trimStart(u8, lines[i], " "));
                     try list.append('\n');
                 }
                 return try list.toOwnedSliceSentinel(0);
