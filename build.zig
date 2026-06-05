@@ -31,6 +31,7 @@ pub fn build(b: *std.Build) void {
     //
 
     const fuzz_exe = addFuzzer(b, target, "yaml", &.{});
+    b.getInstallStep().dependOn(&fuzz_exe.step);
 
     const fuzz_run = b.addSystemCommand(&.{"afl-fuzz"});
     fuzz_run.step.dependOn(&fuzz_exe.step);
@@ -54,17 +55,19 @@ fn addFuzzer(b: *std.Build, target: std.Build.ResolvedTarget, comptime name: []c
             .optimize = .Debug,
         }),
     });
-    fuzz_lib.want_lto = true;
+    fuzz_lib.lto = .full;
     fuzz_lib.bundle_compiler_rt = true;
     fuzz_lib.use_llvm = true;
     fuzz_lib.use_lld = true;
     fuzz_lib.root_module.pic = true;
+    fuzz_lib.root_module.link_libc = true;
+    fuzz_lib.bundle_ubsan_rt = true;
 
     deps.addAllTo(fuzz_lib);
 
     const fuzz_executable_name = "fuzz-" ++ name;
 
-    const fuzz_compile = b.addSystemCommand(&.{ "afl-clang-lto", "-v", "-o" });
+    const fuzz_compile = b.addSystemCommand(&.{ "afl-clang-lto", "-o" });
     const output_path = fuzz_compile.addOutputFileArg(fuzz_executable_name);
     fuzz_compile.addArtifactArg(fuzz_lib);
     fuzz_compile.addArgs(afl_clang_args);
