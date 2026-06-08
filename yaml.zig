@@ -56,7 +56,11 @@ pub const Item = union(enum) {
         }
     }
 
-    pub fn format(self: Item, writer: *std.Io.Writer) !void {
+    pub fn format(self: Value, writer: *std.Io.Writer) !void {
+        return nprint(self, writer);
+    }
+
+    pub fn nprint(self: Item, writer: anytype) !void {
         try writer.writeAll("Item{");
         switch (self) {
             .event => {
@@ -119,6 +123,10 @@ pub const Value = union(enum) {
     }
 
     pub fn format(self: Value, writer: *std.Io.Writer) !void {
+        return nprint(self, writer);
+    }
+
+    pub fn nprint(self: Value, writer: anytype) !void {
         try writer.writeAll("Value{");
         switch (self) {
             .string => {
@@ -133,6 +141,9 @@ pub const Value = union(enum) {
                     try writer.print("{f}, ", .{it});
                 }
                 try writer.writeAll("]");
+            },
+            .anchor => {
+                //
             },
         }
         try writer.writeAll("}");
@@ -189,7 +200,11 @@ pub const Mapping = struct {
         return self.getT(k, .mapping);
     }
 
-    pub fn format(self: Mapping, writer: *std.Io.Writer) !void {
+    pub fn format(self: Value, writer: *std.Io.Writer) !void {
+        return nprint(self, writer);
+    }
+
+    pub fn nprint(self: Mapping, writer: anytype) !void {
         try writer.writeAll("{ ");
         for (self.items) |it| {
             try writer.print("{s}: ", .{it.key});
