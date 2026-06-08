@@ -26,6 +26,7 @@ test { fuzzCase(@embedFile("./fuzz/crashes/id:000000,sig:06,src:000000,time:1399
 test { fuzzCase(@embedFile("./fuzz/crashes/id:000002,sig:06,src:000000,time:12249,execs:9637,op:int8,pos:0,val:+32")); }
 test { fuzzCase(@embedFile("./fuzz/crashes/id:000000,sig:06,src:000000,time:16058,execs:7921,op:arith8,pos:522,val:+10")); }
 test { fuzzCase(@embedFile("./fuzz/crashes/id:000001,sig:06,src:000000,time:17906,execs:8822,op:arith8,pos:683,val:+3")); }
+test { fuzzCase(@embedFile("./fuzz/crashes/id:000001,sig:06,src:000000,time:120282,execs:65197,op:havoc,rep:3")); }
 // zig fmt: on
 
 fn parseTest(comptime basename: [:0]const u8) !void {

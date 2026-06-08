@@ -389,7 +389,7 @@ fn get_event_string(event: Token, p: *const Parser) ![:0]u8 {
                 }
                 return try list.toOwnedSliceSentinel(0);
             },
-            else => @panic("TODO"),
+            else => return error.YamlInvalidMultilineString,
         }
     }
     const s = lines[sm.line][sm.column..em.column];
