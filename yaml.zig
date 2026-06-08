@@ -39,6 +39,7 @@ pub const Item = union(enum) {
     sequence: Sequence,
     string: [:0]const u8,
     stream: Stream,
+    anchor: [:0]const u8,
 
     pub fn deinit(self: *const Item, alloc: std.mem.Allocator) void {
         switch (self.*) {
@@ -51,6 +52,7 @@ pub const Item = union(enum) {
             },
             .string => |s| alloc.free(s),
             .stream => |s| s.deinit(alloc),
+            .anchor => {},
         }
     }
 
@@ -76,6 +78,9 @@ pub const Item = union(enum) {
             .string => {
                 try writer.print("{s}", .{self.string});
             },
+            .anchor => {
+                //
+            },
         }
         try writer.writeAll("}");
     }
@@ -97,6 +102,7 @@ pub const Value = union(enum) {
     string: [:0]const u8,
     mapping: Mapping,
     sequence: Sequence,
+    anchor: [:0]const u8,
 
     pub fn deinit(self: *const Value, alloc: std.mem.Allocator) void {
         switch (self.*) {
@@ -108,6 +114,7 @@ pub const Value = union(enum) {
                 for (s) |*item| item.deinit(alloc);
                 alloc.free(s);
             },
+            .anchor => {},
         }
     }
 
@@ -268,6 +275,7 @@ fn parse_item(p: *Parser, start: ?Token) Error!Item {
         c.YAML_MAPPING_START_EVENT => Item{ .mapping = try parse_mapping(p) },
         c.YAML_SEQUENCE_START_EVENT => Item{ .sequence = try parse_sequence(p) },
         c.YAML_SCALAR_EVENT => Item{ .string = try get_event_string(tok, p) },
+        c.YAML_ALIAS_EVENT => .{ .anchor = std.mem.sliceTo(tok.data.alias.anchor, 0) },
         else => unreachable,
     };
 }
@@ -344,6 +352,7 @@ fn parse_value(p: *Parser) Error!Value {
         .mapping => |x| Value{ .mapping = x },
         .sequence => |x| Value{ .sequence = x },
         .string => |x| Value{ .string = x },
+        .anchor => |x| Value{ .anchor = x },
         else => unreachable,
     };
 }
