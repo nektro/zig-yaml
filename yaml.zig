@@ -408,6 +408,12 @@ fn split(alloc: std.mem.Allocator, in: string) ![]string {
 
     var iter = std.mem.splitAny(u8, in, "\r\n");
     while (iter.next()) |str| {
+        if (str.len == 0) {
+            if ((str.ptr - 1)[0] == '\r' and str.ptr[0] == '\n') {
+                try list.append(iter.next() orelse break);
+                continue;
+            }
+        }
         try list.append(str);
     }
     return try list.toOwnedSlice();
